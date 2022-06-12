@@ -1,0 +1,42 @@
+image: phpdocker/phpdocker:7.4
+
+before_script:
+- |
+  echo "Downloading Cecil..."
+  if [[ -z "$CECIL_VERSION" ]]; then
+    curl -sSOL https://cecil.app/cecil.phar
+  else
+    curl -sSOL https://cecil.app/download/$CECIL_VERSION/cecil.phar
+  fi
+- php cecil.phar --version
+- |
+  echo "Installing themes..."
+  COMPOSER_CACHE_DIR=composer-cache composer install --prefer-dist --no-dev --no-progress --no-interaction
+
+# test build
+test:
+  stage: test
+  script:
+  - php cecil.phar build --verbose --output=test
+  artifacts:
+    paths:
+    - test
+  except:
+  - master
+
+# build and deploy to pages
+pages:
+  stage: deploy
+  script:
+  - php cecil.phar build --output=public
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
+
+cache:
+  paths:
+  - composer-cache/
+  - vendor/
+  - .cache/
